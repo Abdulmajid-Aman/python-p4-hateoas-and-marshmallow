@@ -16,6 +16,7 @@ migrate = Migrate(app, db)
 db.init_app(app)
 
 api = Api(app)
+mm = Marshmallow(app)
 
 class Index(Resource):
 
@@ -38,10 +39,10 @@ class Newsletters(Resource):
 
     def get(self):
         
-        response_dict_list = [n.to_dict() for n in Newsletter.query.all()]
+        newsletters = Newsletter.query.all()
 
         response = make_response(
-            response_dict_list,
+            newsletters_schema(newsletters),
             200,
         )
 
@@ -116,6 +117,29 @@ class NewsletterByID(Resource):
         return response
 
 api.add_resource(NewsletterByID, '/newsletters/<int:id>')
+
+
+class NewsletterSchema(ma.SQLAlchemySchema):
+
+    class Meta:
+        model = Newsletter
+        load_instance = True
+
+    title = ma.auto_field()
+    published_at = ma.auto_field()
+
+    url = ma.HyperLinks(
+        {
+            "self": ma.URLFor(
+                "newsletterbyid",
+                values = dict(id = "<id>")
+            ),
+            "collection" : ma.URLFor("newsletter")
+        }
+    )
+
+newsletter_schema = NewsletterSchema()
+newsletters_schema  = NewsletterSchema(many = True)
 
 
 if __name__ == '__main__':
